@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+
+<div class="w3-padding-32">
+    <div class="w3-bar w3-border">
+      <a href="home.html" class="w3-bar-item w3-button">Home</a>
+      <a href="diagrams.html" class="w3-bar-item w3-button w3-light-grey">Diagrams</a>
+      <a href="cityscaleintervention.html" class="w3-bar-item w3-button">City Scale Intervention</a>
+      <a href="index.html" class="w3-bar-item w3-button w3-hide-small">MapBox</a>
+      <a href="references.html" class="w3-bar-item w3-button w3-hide-small">References</a>
+    </div>
+  </div>
+</header>
+
+
+<head>
+    <meta charset='utf-8' />
+    <title>Display buildings in 3D</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.50.0/mapbox-gl.js'></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.50.0/mapbox-gl.css' rel='stylesheet' />
+    <style>
+        body { margin:0; padding:0; }
+        #map { position:absolute; top:0; bottom:0; width:100%; }
+    </style>
+</head>
+<body>
+
+<div id='map'></div>
+<script>
+mapboxgl.accessToken = 'pk.eyJ1IjoiamFtZXNwOTkiLCJhIjoiY2pobmd5aGJxMWdiYzNhcXdpaWVhdzhkbCJ9._o-_ysHz5HG9S49UizQiqQ';
+var map = new mapboxgl.Map({
+    style: 'mapbox://styles/mapbox/light-v9',
+    center: [141.4539, -31.9539], // starting position [lng, lat]
+    zoom: 9, // starting zoom
+    pitch: 45,
+    bearing: -17.6,
+    container: 'map'
+});
+
+// The 'building' layer in the mapbox-streets vector source contains building-height
+// data from OpenStreetMap.
+map.on('load', function() {
+    // Insert the layer beneath any symbol layer.
+    var layers = map.getStyle().layers;
+
+    var labelLayerId;
+    for (var i = 0; i < layers.length; i++) {
+        if (layers[i].type === 'symbol' && layers[i].layout['text-field']) {
+            labelLayerId = layers[i].id;
+            break;
+        }
+    }
+
+    map.addLayer({
+        "id": "data",
+        "type": "fill-extrusion",
+        "source": {
+            'type': 'geojson',
+            'data': './test2.geojson'
+        },
+        'layout': {
+            'visibility': 'visible'
+            },
+        'paint': {
+                'fill-extrusion-color' : {
+                    'property': 'colour',
+                    'type': 'identity'
+                },
+                'fill-extrusion-height' : {
+                    'type': 'identity',
+                    'property': 'height'
+                },
+                'fill-extrusion-base' : {
+                    'type': 'identity',
+                    'property': 'base_height'
+                },
+                 'fill-extrusion-opacity': 1
+            }
+
+    });
+
+    map.addLayer({
+        'id': '3d-buildings',
+        'source': 'composite',
+        'source-layer': 'building',
+        'filter': ['==', 'extrude', 'true'],
+        'type': 'fill-extrusion',
+        'minzoom': 15,
+        'paint': {
+            'fill-extrusion-color': '#aaa',
+
+            // use an 'interpolate' expression to add a smooth transition effect to the
+            // buildings as the user zooms in
+            'fill-extrusion-height': [
+                "interpolate", ["linear"], ["zoom"],
+                15, 0,
+                15.05, ["get", "height"]
+            ],
+            'fill-extrusion-base': [
+                "interpolate", ["linear"], ["zoom"],
+                15, 0,
+                15.05, ["get", "min_height"]
+            ],
+            'fill-extrusion-opacity': .6
+        }
+    }, labelLayerId);
+});
+</script>
+
+</body>
+</html>
